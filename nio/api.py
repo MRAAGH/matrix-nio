@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright © 2018 Damir Jelić <poljar@termina.org.uk>
-# Copyright © 2020 Famedly GmbH
+# Copyright © 2020-2021 Famedly GmbH
 #
 # Permission to use, copy, modify, and/or distribute this software for
 # any purpose with or without fee is hereby granted, provided that the
@@ -831,6 +831,8 @@ class Api:
         invite=(),                          # type: Sequence[str]
         initial_state=(),                   # type: Sequence[Dict[str, Any]]
         power_level_override=None,          # type: Optional[Dict[str, Any]]
+        predecessor=None,                   # type: Optional[Dict[str, Any]]
+        space=False,                        # type: bool
     ):
         # type (...) -> Tuple[str, str, str]
         """Create a new room.
@@ -887,6 +889,8 @@ class Api:
                 to override the default.
                 The dict will be applied on top of the generated
                 ``m.room.power_levels`` event before it is sent to the room.
+
+            space (bool): Create as a Space (defaults to False).
         """
         path = ["createRoom"]
         query_parameters = {"access_token": access_token}
@@ -920,6 +924,12 @@ class Api:
 
         if power_level_override:
             body["power_level_content_override"] = power_level_override
+
+        if predecessor:
+            body["creation_content"]["predecessor"] = predecessor
+
+        if space:
+            body["creation_content"]["type"] = "m.space"
 
         return (
             "POST",
@@ -1980,3 +1990,46 @@ class Api:
             Api._build_path(path, query_parameters),
             Api.to_json(content),
         )
+
+    @staticmethod
+    def delete_room_alias(
+            access_token: str,
+            alias: str) -> Tuple[str, str]:
+        """Delete an room alias
+
+        Returns the HTTP method and HTTP path for the request.
+
+        Args:
+            access_token (str): The access token to be used with the request.
+            alias (str): The room alias
+        """
+
+        query_parameters = {"access_token": access_token}
+        path = ["directory", "room", alias]
+
+        return ("DELETE",
+                Api._build_path(path, query_parameters))
+
+    @staticmethod
+    def put_room_alias(
+            access_token: str,
+            alias: str,
+            room_id: str) -> Tuple[str, str, str]:
+        """Add an room alias
+
+        Returns the HTTP method, HTTP path and data for the request.
+
+        Args:
+            access_token (str): The access token to be used with the request.
+            alias (str): The room alias
+            room_id (str): The room to point to
+        """
+
+        query_parameters = {"access_token": access_token}
+        path = ["directory", "room", alias]
+        content = dict()
+        content['room_id'] = room_id
+
+        return ("PUT",
+                Api._build_path(path, query_parameters),
+                Api.to_json(content),)
